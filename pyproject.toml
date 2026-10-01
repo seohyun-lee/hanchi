@@ -38,6 +38,7 @@ classifiers = [
 dependencies = [
     # 0.23.2 and earlier are LGPL; 0.24.0+ is Apache-2.0. Never relax this bound.
     "kiwipiepy>=0.24.0",
+    "PyYAML>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -48,6 +49,7 @@ dev = [
     "pytest>=8",
     "ruff>=0.6",
     "mypy>=1.10",
+    "types-PyYAML",
 ]
 
 [project.scripts]
@@ -78,6 +80,7 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["SIM905"]  # whitespace-split string literals read better for tag lists
 
 [tool.mypy]
 python_version = "3.10"
@@ -88,3 +91,8 @@ packages = ["hanchi"]
 [[tool.mypy.overrides]]
 module = ["kiwipiepy", "kiwipiepy.*"]
 ignore_missing_imports = true
+
+[tool.ruff.lint.per-file-ignores]
+# Language data and tests intentionally contain full-width and look-alike characters.
+"tests/**" = ["RUF001", "RUF002", "RUF003"]
+"src/hanchi/lang/**" = ["RUF001", "RUF002", "RUF003"]
