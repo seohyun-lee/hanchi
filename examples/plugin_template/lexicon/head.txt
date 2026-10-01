@@ -1,0 +1,3 @@
+# Category words. Prefix a line with - to remove an entry from an earlier plugin.
+보조배터리
+-필름

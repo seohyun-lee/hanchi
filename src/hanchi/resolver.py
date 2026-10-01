@@ -30,6 +30,7 @@ from hanchi.schema import (
 )
 from hanchi.units import (
     INTERROGATIVE,
+    LOCATION_GUESS,
     MIXED_SCRIPT,
     NEGATIVE_PREDICATE,
     PROPER,
@@ -213,7 +214,9 @@ def _score(
     elif role == QUALIFIER:
         if "qualifier" in lex and v.word_final(i):
             p = v.same_word_prev(i)
-            if p is not None and ("location" in v.lex[p] or v.has_entity_full(p)):
+            if p is not None and (
+                "location" in v.lex[p] or v.spans[p].has(LOCATION_GUESS) or v.has_entity_full(p)
+            ):
                 fire("qualifier_after_location", "rule:location+qualifier")
     elif role == HEAD:
         if "head" in lex:
@@ -226,6 +229,8 @@ def _score(
     elif role == LOCATION:
         if "location" in lex:
             fire("location_lexicon", "lexicon:location")
+        elif span.has(LOCATION_GUESS):
+            fire("location_guess", "rule:name+X+qualifier")
     elif role == CONSTRAINT:
         if "constraint" in lex:
             ctype = res.lexicon_type("constraint", span.key) or "constraint"

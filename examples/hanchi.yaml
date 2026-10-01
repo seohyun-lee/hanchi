@@ -1,0 +1,6 @@
+# Example analyzer configuration. Load with: Analyzer.from_config("examples/hanchi.yaml")
+plugins:
+  - preset:commerce
+  - ./plugin_template
+overrides: []
+include_default: true

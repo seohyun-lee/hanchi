@@ -72,6 +72,7 @@ features:
     np_final_noun: 0.5            # unknown noun at the end of a noun phrase
   LOCATION:
     location_lexicon: 3.0
+    location_guess: 1.5           # unknown X in "<name> X점"
   CONSTRAINT:
     constraint_lexicon: 2.5
     quantity: 2.5                 # number + unit: 2개
@@ -103,6 +104,7 @@ interpretation:
   max_merge_words: 3              # longest unsupported merge, in words
   max_interpretations: 16
   max_supported_merges: 3         # dictionary-backed merges combined in one interpretation
+  mixed_script_merge: 4.0         # "123 젤라또": number/letters word + category word as one name
 
 senses:
   prior_floor: 0.01               # prior of a sense with no sense_prior row when others have one
@@ -111,6 +113,9 @@ lattice:
   max_phrase_units: 4             # longest lexicon phrase, in units
   max_entity_spans: 8             # longest entity name, in spans
   min_prefix_len: 2               # shortest span counted as an entity-name prefix
+  min_location_guess_len: 2       # "<name> X점": shortest X guessed as a location
+  max_infix_len: 8                # entity index: longest indexed inner substring
+  max_infix_keys: 64              # entity index: names kept per inner substring
 
 weights:
   alpha: 0.5                      # raw = base × (alpha + (1 - alpha) × idf_norm)
@@ -125,6 +130,12 @@ attach:
   price: none
   quantity: nominal
   shipping: none
+
+# Synonym / hierarchy expansion (Analyzer.expand): weight multipliers by relation.
+expand:
+  synonym: 0.95                   # same meaning (synonyms.tsv)
+  hyponym: 0.7                    # query is broader: 맛집 -> 식당
+  hypernym: 0.4                   # query is narrower: 식당 -> 맛집
 
 context:
   retry_similarity: 0.8           # prev_query vs first clause (1 - edit distance ratio)

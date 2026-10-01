@@ -1,0 +1,3 @@
+# Only the weights you change are needed; the rest keep their earlier values.
+weights:
+  MODIFIER: 0.85

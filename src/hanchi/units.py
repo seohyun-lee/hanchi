@@ -43,6 +43,7 @@ NEGATIVE_PREDICATE = "negative_predicate"
 INTERROGATIVE = "interrogative"
 MIXED_SCRIPT = "mixed_script"
 QUANTITY = "quantity"
+LOCATION_GUESS = "location_guess"  # set by the core: unknown X in "<name> X점"
 
 
 @dataclass(frozen=True)

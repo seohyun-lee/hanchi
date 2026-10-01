@@ -1,0 +1,5 @@
+# Same structure as hanchi/data/default/rules.yaml. Only changed keys are needed.
+threshold: 0.9
+features:
+  ENTITY:
+    entity_full: 4.0
