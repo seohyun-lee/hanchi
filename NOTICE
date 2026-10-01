@@ -1,0 +1,24 @@
+Hanchi
+Copyright 2026 Seohyun Lee and the Hanchi contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+-------------------------------------------------------------------------------
+Third-party software
+-------------------------------------------------------------------------------
+
+Kiwi / kiwipiepy (Korean morphological analyzer)
+  https://github.com/bab2min/kiwipiepy
+  Licensed under the Apache License, Version 2.0 (versions 0.24.0 and later).
+  Hanchi depends on kiwipiepy>=0.24.0; earlier releases were distributed under
+  the LGPL and are not used.
+
+-------------------------------------------------------------------------------
+Data
+-------------------------------------------------------------------------------
+
+National Institute of Korean Language dictionaries (Standard Korean Language
+Dictionary, Urimalsaem) are licensed under CC BY-SA 2.0 KR. Hanchi does not
+include or redistribute any data from these dictionaries. Optional features may
+query them at runtime and store results only in the user's local cache, with
+source and license recorded in each cache file.

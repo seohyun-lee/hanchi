@@ -1,0 +1,90 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hanchi"
+version = "0.1.0.dev0"
+description = "Korean query understanding: per-word role & weight from context."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.10"
+authors = [{ name = "Seohyun Lee" }]
+keywords = [
+    "korean",
+    "nlp",
+    "query-understanding",
+    "information-retrieval",
+    "search",
+    "term-weighting",
+    "kiwi",
+    "korean-nlp",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: Korean",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Text Processing :: Indexing",
+    "Typing :: Typed",
+]
+dependencies = [
+    # 0.23.2 and earlier are LGPL; 0.24.0+ is Apache-2.0. Never relax this bound.
+    "kiwipiepy>=0.24.0",
+]
+
+[project.optional-dependencies]
+# Filled in by the milestones that need them (each new dependency gets a license check).
+neural = []
+dictgen = []
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+hanchi = "hanchi.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/seohyun-lee/hanchi"
+Source = "https://github.com/seohyun-lee/hanchi"
+Issues = "https://github.com/seohyun-lee/hanchi/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hanchi"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/hanchi", "tests", "README.md", "README.en.md", "LICENSE", "NOTICE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -m 'not network'"
+markers = [
+    "network: tests that call external services (excluded by default; run with -m network)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+mypy_path = "src"
+packages = ["hanchi"]
+
+[[tool.mypy.overrides]]
+module = ["kiwipiepy", "kiwipiepy.*"]
+ignore_missing_imports = true
