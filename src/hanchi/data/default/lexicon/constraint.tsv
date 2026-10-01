@@ -1,0 +1,13 @@
+# term	type   (types map to attach strategies in rules.yaml)
+지금	time
+오늘	time
+내일	time
+이번주	time
+주말	time
+최신	time
+요즘	time
+싼	price
+저렴한	price
+무료	price
+할인	price
+최저가	price

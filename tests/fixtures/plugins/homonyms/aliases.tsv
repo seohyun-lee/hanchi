@@ -1,0 +1,11 @@
+# variant	sense_id	score
+애플	apple_inc	1.0
+애플	apple_fruit	0.2
+애플파이	apple_pie	1.0
+배	pear	1.0
+배	ship	1.0
+배	belly	1.0
+매장	store	1.0
+서비스센터	service_center	1.0
+수리	repair	1.0
+아이폰	iphone	1.0

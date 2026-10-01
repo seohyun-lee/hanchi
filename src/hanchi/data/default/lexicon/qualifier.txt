@@ -1,0 +1,8 @@
+# Edition / version markers (QUALIFIER candidates).
+개정판
+버전
+시즌
+에디션
+완전판
+리마스터
+확장판

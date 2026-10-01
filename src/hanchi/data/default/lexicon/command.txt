@@ -1,0 +1,15 @@
+# Request words and phrases (COMMAND candidates).
+찾아줘
+알려줘
+보여줘
+검색해줘
+틀어줘
+재생해줘
+들려줘
+켜줘
+추천해줘
+찾아주세요
+알려주세요
+보여주세요
+검색
+찾기

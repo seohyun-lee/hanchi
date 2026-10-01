@@ -1,0 +1,8 @@
+# type_a	type_b	score
+company	store_word	2.5
+company	service_center	2.5
+company	product	2.0
+vehicle	repair	2.0
+food	repair	-1.5
+body	repair	-1.5
+food	quantity	2.0

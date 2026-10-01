@@ -1,0 +1,47 @@
+# Korean morpheme patterns used to build units (hanchi.lang.ko.units).
+# A plugin directory may override any key with its own patterns.yaml.
+
+# Negation adverbs merged into the following predicate: "안 나와", "못 찾겠어".
+# (A predicate ending in a connective followed by an auxiliary word is merged too:
+# "보여 줘" → one predicate.)
+negation_adverbs: ["안", "못"]
+
+# Predicate stems that make a negative statement: "없네", "아니야".
+negative_stems: ["없", "아니"]
+
+# Interrogative adverbs: "왜 안나와", "어떻게 가".
+interrogatives: ["왜", "어째서", "어떻게", "어디서"]
+
+# A predicate is a request when it contains one of these auxiliaries and ends with one
+# of the endings below ("찾아줘" = 찾/VV 어/EC 주/VX 어/EF). Kiwi reads the last 어 as EC
+# when a noun follows ("찾아줘 예매"), so the ending's form matters, not its tag.
+request_auxiliaries: ["주"]
+request_aux_endings: ["어", "아", "어요", "아요", "세요", "라", "어라", "ᆯ래", "ᆸ시오", "시오", "십시오"]
+# A predicate also counts as a request when it ends with one of these final endings
+# without an auxiliary ("찾으세요").
+request_endings: ["세요", "으세요", "십시오", "으십시오"]
+
+# Clause boundaries.
+clause_break:
+  # Always start a new clause after sentence punctuation (SF).
+  always_after_tags: ["SF"]
+  # After a unit ending in a final ending (EF), start a new clause when the next unit
+  # is one of these kinds ("찾아줘 | 왜 안나와", "찾아줘 | 아니 강남") …
+  next_kinds: ["adverb", "interjection"]
+  # … or when the previous unit is a request and the next unit is another predicate
+  # ("찾아줘 | 안나와"). A noun after a request stays in the clause ("나를 찾아줘 예매").
+  predicate_after_request: true
+
+# Human-readable labels for unit kinds (Span.pos).
+kind_labels:
+  nominal: "명사"
+  foreign: "외국어"
+  number: "수"
+  predicate: "용언"
+  adverb: "부사"
+  determiner: "관형사"
+  interjection: "감탄사"
+  function: "기능어"
+  special: "특수"
+  other: "미분류"
+  phrase: "구"

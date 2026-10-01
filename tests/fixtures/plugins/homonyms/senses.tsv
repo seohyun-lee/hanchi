@@ -1,0 +1,11 @@
+# sense_id	canonical	role	type	note
+apple_inc	애플	ENTITY	company
+apple_fruit	사과	HEAD	food
+apple_pie	애플파이	HEAD	food
+pear	배	HEAD	food
+ship	배	HEAD	vehicle
+belly	배	HEAD	body
+store	매장	HEAD	store_word
+service_center	서비스센터	HEAD	service_center
+repair	수리	HEAD	repair
+iphone	아이폰	ENTITY	product

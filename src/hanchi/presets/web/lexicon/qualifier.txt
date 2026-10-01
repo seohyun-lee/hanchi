@@ -1,0 +1,5 @@
+# Season / episode / edition markers.
+시즌
+완결
+특별판
+감독판

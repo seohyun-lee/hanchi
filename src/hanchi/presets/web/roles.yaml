@@ -1,0 +1,3 @@
+# Web search: content type words (가사, 레시피) carry a bit more intent.
+weights:
+  HEAD: 0.4
