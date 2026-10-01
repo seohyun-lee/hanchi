@@ -1,0 +1,14 @@
+# Kiwi backend settings. A plugin directory may override any key with its own backend.yaml.
+
+# Score given to words registered with add_user_word() when no explicit score is passed.
+# Higher scores make Kiwi prefer the registered form over alternative analyses.
+user_word_score: 5.0
+
+# Typo correction passed to Kiwi.tokenize(typos=...): null (off), "basic",
+# "continual", "basic_with_continual", "lengthening", "basic_with_continual_and_lengthening".
+typos: null
+typo_cost_threshold: 2.5
+
+# Analyze a whitespace-free variant too and keep whichever covers more dictionary words
+# ("센터 필드" -> "센터필드" when 센터필드 is registered).
+despaced_variant: true

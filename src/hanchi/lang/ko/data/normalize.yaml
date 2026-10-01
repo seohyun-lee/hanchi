@@ -1,0 +1,24 @@
+# Korean normalization rules. A plugin directory may override any key with its own
+# normalize.yaml (mappings merge, lists replace).
+
+# Corporate-form markers removed from names: "(주)스타벅스", "주식회사 OO", "OO(유)".
+# Parenthesized forms are removed wherever they appear; bare words only when they are
+# a whole word or sit at the start/end of one.
+company_markers:
+  parenthesized: ["주", "유", "사", "재", "합", "株"]
+  words: ["주식회사", "유한회사", "유한책임회사", "합자회사", "합명회사", "사단법인", "재단법인"]
+
+# Bracket and quote characters become word separators: "스타벅스(강남점)" -> "스타벅스 강남점".
+separators: "()[]{}<>〈〉《》「」『』【】〔〕\"'“”‘’`"
+
+# Middle dots / interpuncts become word separators: "떡볶이·순대" -> "떡볶이 순대".
+middle_dots: "·ㆍ・‧•∙"
+
+# Hyphens and dashes become word separators, except between two digits (ranges, codes).
+dashes: "-‐‑‒–—―"
+
+# Unicode ranges NOT passed through NFKC. NFKC turns Hangul compatibility jamo
+# ("ㅋㅋ", "ㄱ") and halfwidth Hangul into conjoining jamo, which hurts the analyzer.
+nfkc_protect:
+  - [0x3130, 0x318F]  # Hangul compatibility jamo
+  - [0xFFA0, 0xFFDC]  # Halfwidth Hangul
