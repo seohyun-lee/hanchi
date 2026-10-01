@@ -19,6 +19,29 @@ pip install -e ".[dev]"     # 개발용
 
 Python 3.10 이상이 필요합니다.
 
+## 사용 예
+
+```python
+from hanchi import Analyzer
+
+a = Analyzer(plugins=["preset:local"])          # 패키지 기본값 + 장소 검색 프리셋
+r = a.analyze("지금 영업중인 식당 찾아줘")
+for s in r.spans:
+    print(s.text, s.top.role, round(s.top.p, 2), s.top.weight, s.attach)
+# 지금   CONSTRAINT 0.92 ... {'type': 'time', 'anchor': 'now'}
+# 영업중 CONSTRAINT ...     {'type': 'status', 'anchor': 'now'}
+# 인     FUNC ...
+# 식당   HEAD ...
+# 찾아줘 COMMAND 0.98 ...
+
+r = a.analyze("강남 방탈출 찾아줘 왜 안나와")
+r.signals      # [{'type': 'dissatisfaction', 'span': '왜 안나와', 'clause_id': 1}]
+r.interpretations   # 분절 해석별 확률 (예: '강남 방탈출'을 한 이름으로 읽는 해석)
+a.analyze("나를 찾아줘", explain=True).explain   # 특징별 기여도
+```
+
+`Span.resolved`는 가장 높은 가설의 확률이 임계값(기본 0.9) 이상일 때만 채워집니다. 그렇지 않으면 `hypotheses`에 남은 모든 해석을 보고 검색 쪽에서 해석별로 시도하면 됩니다.
+
 ## 핵심 개념: 3층 모델
 
 | 층 | 질문 | 값의 형태 | 담당 |

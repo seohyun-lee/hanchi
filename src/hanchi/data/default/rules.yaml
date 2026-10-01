@@ -1,0 +1,130 @@
+# Resolver settings. Every number the analyzer uses lives here (or in roles.yaml).
+# Override in a plugin's rules.yaml; mappings merge, other values replace.
+
+# A span's best hypothesis is reported as `resolved` only when its probability >= threshold.
+threshold: 0.9
+
+# Logit offset per role before any evidence.
+priors:
+  ENTITY: 0.0
+  MODIFIER: 0.0
+  HEAD: 0.0
+  LOCATION: -1.0
+  CONSTRAINT: 0.0
+  QUALIFIER: 0.0
+  COMMAND: 0.0
+  META: 0.0
+  FUNC: 0.0
+
+# Roles every span of a given kind may take (before lexicon/trait/dictionary evidence
+# adds more). Kinds come from the language pack; "phrase" = several units merged.
+candidates:
+  nominal: [ENTITY, MODIFIER, HEAD, LOCATION]
+  foreign: [ENTITY, MODIFIER, HEAD]
+  number: [ENTITY, MODIFIER]
+  predicate: [ENTITY]
+  adverb: [ENTITY]
+  determiner: [MODIFIER]
+  interjection: [ENTITY]
+  special: [ENTITY]
+  other: [ENTITY]
+  phrase: [ENTITY]
+
+# A lexicon match adds that role as a candidate.
+lexicon_roles:
+  head: HEAD
+  qualifier: QUALIFIER
+  command: COMMAND
+  constraint: CONSTRAINT
+  location: LOCATION
+  meta: META
+
+# A unit trait (set by the language pack) adds that role as a candidate.
+trait_roles:
+  request_form: COMMAND
+  negative_predicate: META
+  interrogative: META
+  quantity: CONSTRAINT
+  mixed_script: ENTITY
+
+# Feature weights, added to the logit of a hypothesis of that role when the feature fires.
+features:
+  ENTITY:
+    entity_full: 4.0              # span text equals an entity name
+    entity_prefix: 1.5            # span is the beginning of an entity name
+    entity_common_part: 0.0       # span only matches a non-initial part of a name (no evidence)
+    proper_noun: 1.0              # tagged as a proper noun
+    mixed_script: 2.0             # digits/letters glued to a noun: 연세365의원
+    mixed_ends_with_head: 1.5     # … and ending in a category word: …의원
+    next_location_qualifier: 1.5  # followed by LOCATION + QUALIFIER: 안나오네 강남점
+    adjacent_location: 1.5        # (dictionary names only) next to a LOCATION
+    before_command: 2.0           # (dictionary names only) right before a request
+  COMMAND:
+    request_clause_final: 3.0     # request form or command word at the end of its clause
+    request_not_final: 0.0
+    after_nominal: 1.0            # preceded by a noun-like span
+    in_entity_full: -3.0          # inside a longer entity name present in the query
+  QUALIFIER:
+    qualifier_after_location: 3.0 # word-final marker after a location/name in the same word
+  HEAD:
+    head_lexicon_np_final: 2.0    # category word at the end of a noun phrase
+    head_lexicon: 0.0
+    np_final_noun: 0.5            # unknown noun at the end of a noun phrase
+  LOCATION:
+    location_lexicon: 3.0
+  CONSTRAINT:
+    constraint_lexicon: 2.5
+    quantity: 2.5                 # number + unit: 2개
+  MODIFIER:
+    before_head: 1.5              # noun right before a category word
+  FUNC:
+    function_form: 5.0
+  META:
+    interrogative: 2.5            # 왜, 어째서
+    after_interrogative: 2.5      # 왜 [안나와]
+    after_complete_request: 1.5   # previous clause ended with a request
+    negative_predicate: 1.5       # 안 나와, 없네
+    correction_marker: 2.0        # 아니, 말고
+    meta_lexicon: 1.5             # 이상해, 제대로
+    context_retry: 3.0            # caller says the previous, similar query had no results
+  # Sense features apply to (role, sense) hypotheses; values are multipliers.
+  SENSE:
+    compat: 1.0                   # × compat.tsv score per co-occurring span
+    sense_prior: 1.0              # × log(prior) from sense_prior.tsv
+    vertical_match: 1.0           # prior row exists for context["vertical"]
+    context_same_type: 1.0        # previous query had a sense of the same type
+    context_compat: 1.0           # × compat score with the previous query's types
+    alias_score: 0.0              # × log(aliases.tsv score); off by default
+
+# Segmentation hypotheses (several words read as one name).
+interpretation:
+  merge_prior: -4.0               # score of a merge without dictionary support
+  entity_full_match: 6.5          # added when the merged text is an entity name
+  max_merge_words: 3              # longest unsupported merge, in words
+  max_interpretations: 16
+  max_supported_merges: 3         # dictionary-backed merges combined in one interpretation
+
+senses:
+  prior_floor: 0.01               # prior of a sense with no sense_prior row when others have one
+
+lattice:
+  max_phrase_units: 4             # longest lexicon phrase, in units
+  max_entity_spans: 8             # longest entity name, in spans
+  min_prefix_len: 2               # shortest span counted as an entity-name prefix
+
+weights:
+  alpha: 0.5                      # raw = base × (alpha + (1 - alpha) × idf_norm)
+  cap: 1.0
+
+# How each constraint type attaches: location (nearest LOCATION, else "user_location"),
+# now, nominal (the noun it counts), none.
+attach:
+  proximity: location
+  time: now
+  status: now
+  price: none
+  quantity: nominal
+  shipping: none
+
+context:
+  retry_similarity: 0.8           # prev_query vs first clause (1 - edit distance ratio)

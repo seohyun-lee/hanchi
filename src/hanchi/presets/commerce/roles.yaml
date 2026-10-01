@@ -1,0 +1,3 @@
+# Product search: modifiers (무선, 고속) narrow results strongly.
+weights:
+  MODIFIER: 0.9

@@ -1,0 +1,12 @@
+# Base weight of each role: how much a word in that role should count when matching.
+# Override in a plugin's roles.yaml (only the keys you set change).
+weights:
+  ENTITY: 1.0       # names: brands, titles, people, products, buildings
+  MODIFIER: 0.8     # narrows a category: 무선 (이어폰)
+  LOCATION: 0.6     # places
+  CONSTRAINT: 0.5   # time, status, price, distance, quantity
+  HEAD: 0.3         # category / type: 케이스, 레시피
+  QUALIFIER: 0.05   # branch / edition / version markers
+  COMMAND: 0.05     # request phrases: 찾아줘, 알려줘
+  META: 0.0         # feedback / correction utterances (reported in Analysis.signals)
+  FUNC: 0.0         # particles, endings, punctuation
