@@ -81,7 +81,7 @@ def test_registered_name_is_single_entity_span() -> None:
 
 
 def test_branch_marker_is_qualifier() -> None:
-    r = analyzer(LOCAL).analyze("메가스터디학원 강남센터")
+    r = analyzer(LOCAL).analyze("서울대병원 강남센터")
     assert [s.norm for s in r.spans][-2:] == ["강남", "센터"]
     assert top_role(r.spans[-1]) == "QUALIFIER"
 

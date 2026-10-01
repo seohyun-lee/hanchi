@@ -60,7 +60,7 @@ class KoreanPack:
             if " " in name or any(ch.isascii() and ch.isalnum() for ch in name):
                 continue
             morphs = self._backend.tokenize(name)
-            if len(morphs) > 1 and all(tag_info(m.tag).pos_class.is_nominal for m in morphs):
+            if morphs and all(tag_info(m.tag).pos_class.is_nominal for m in morphs):
                 self._backend.add_user_word(name, "NNP")
 
     def pos_detail(self, morphs: Sequence[tuple[str, str]]) -> str:

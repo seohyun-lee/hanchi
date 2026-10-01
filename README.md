@@ -83,9 +83,91 @@ a.analyze("나를 찾아줘", explain=True).explain  # 특징별 기여도
 
 ## 내 도메인에 맞게 튜닝하기
 
-코드 수정 없이 플러그인 디렉토리와 설정 파일만으로 도메인을 바꿀 수 있게 설계합니다.
-우선순위는 `overrides` > 사용자 플러그인 > 패키지 기본 예제입니다.
-플러그인 디렉토리 구조, 파일별 포맷, 예시 프리셋(web, commerce, local)은 플러그인 로더가 구현되는 대로 이 절에 정리합니다.
+Hanchi의 도메인 지식(사전, 어휘, 가중치, 임계값, 뜻 사전확률, 핫픽스)은 전부 **플러그인 디렉토리**에 있습니다. 코드를 고치지 않고 플러그인 경로와 설정 파일만 바꿔서 도메인을 갈아끼울 수 있습니다.
+
+### 1. 설정 파일 하나로 시작하기
+
+```yaml
+# my_search/hanchi.yaml
+plugins:                # 순서대로 적용, 뒤에 올수록 우선
+  - preset:local        # 패키지에 들어 있는 예시 프리셋 (web / commerce / local)
+  - ./plugin            # 내 도메인 플러그인 (이 파일 기준 상대 경로)
+overrides:              # 마지막에 적용되는 핫픽스 (재배포 없이 수정)
+  - ./hotfix/overrides.tsv
+include_default: true   # 패키지 기본 플러그인 포함 여부
+```
+
+```python
+from hanchi import Analyzer
+
+a = Analyzer.from_config("my_search/hanchi.yaml")
+# 같은 내용: Analyzer(["preset:local", "my_search/plugin"], overrides=["my_search/hotfix/overrides.tsv"])
+```
+
+### 2. 덮어쓰기 우선순위
+
+```
+overrides (overrides.tsv, overrides=)  >  사용자 플러그인 (뒤에 올수록 우선)  >  프리셋  >  패키지 기본값
+```
+
+- YAML(`roles.yaml`, `rules.yaml` 등)은 키 단위로 병합합니다. 바꾼 키만 바뀌고 나머지는 앞 단계 값이 유지됩니다.
+- 사전·어휘 파일은 합쳐집니다. 앞 단계 항목을 지우려면 줄 앞에 `-`를 붙입니다(`-센터`).
+- `overrides.tsv`는 분석 결과 전체보다 우선합니다.
+
+### 3. 플러그인 디렉토리 구조
+
+모든 파일은 선택입니다. 필요한 것만 두세요. 템플릿: [`examples/plugin_template/`](examples/plugin_template/)
+
+```
+plugin/
+├─ roles.yaml          # 역할별 기본 가중치
+├─ rules.yaml          # resolver 특징 가중치, 임계값(threshold), 해석·가중치·attach 설정
+├─ entities/*.tsv      # 개체 사전
+├─ lexicon/            # 역할 어휘
+│  ├─ head.txt  qualifier.txt  command.txt  location.txt  unit.txt
+│  └─ constraint.tsv  meta.tsv
+├─ senses.tsv  aliases.tsv  synonyms.tsv  hypernyms.tsv  compat.tsv  sense_prior.tsv
+├─ idf.tsv
+├─ overrides.tsv
+└─ normalize.yaml  patterns.yaml  backend.yaml   # 언어 팩(한국어) 설정
+```
+
+### 4. 파일별 포맷
+
+TSV는 탭 구분, `#`으로 시작하는 줄은 주석입니다.
+
+| 파일 | 포맷 | 예 |
+|---|---|---|
+| `roles.yaml` | `weights: {ROLE: 가중치}` | `weights: {LOCATION: 0.7}` |
+| `rules.yaml` | 패키지 기본값(`hanchi/data/default/rules.yaml`)과 같은 구조 | `threshold: 0.85` / `features: {COMMAND: {request_clause_final: 3.5}}` |
+| `entities/*.tsv` | `이름 ⇥ 대표형 ⇥ 타입 ⇥ 출처 ⇥ 점수` | `센터필드 ⇥ 센터필드 ⇥ building ⇥ manual ⇥ 1.0` |
+| `lexicon/*.txt` | 한 줄에 하나. `re:`로 시작하면 정규식 | `점` / `re:[a-z]점` |
+| `lexicon/constraint.tsv` | `어휘 ⇥ 타입`(proximity, time, status, price, quantity …) | `근처 ⇥ proximity` |
+| `lexicon/meta.tsv` | `어휘 ⇥ 타입`(dissatisfaction, correction) | `말고 ⇥ correction` |
+| `senses.tsv` | `sense_id ⇥ 대표형 ⇥ 역할 ⇥ 타입 ⇥ 메모` | `apple_inc ⇥ 애플 ⇥ ENTITY ⇥ company` |
+| `aliases.tsv` | `표기 ⇥ 대상 ⇥ 점수`. 대상은 sense_id, 개체 이름, 또는 다른 비모호 표기 | `스벅 ⇥ 스타벅스` / `센타필드 ⇥ 센터필드` |
+| `synonyms.tsv` | `sense_id ⇥ sense_id` (양방향) | `restaurant ⇥ eatery` |
+| `hypernyms.tsv` | `하위 sense ⇥ 상위 sense` (방향 있음) | `restaurant ⇥ hot_place` |
+| `compat.tsv` | `타입 ⇥ 타입 ⇥ 점수` (음수면 비호환) | `company ⇥ store_word ⇥ 2.0` |
+| `sense_prior.tsv` | `표기 ⇥ sense_id ⇥ 사전확률 [⇥ vertical]` | `애플 ⇥ apple_inc ⇥ 0.9 ⇥ web` |
+| `idf.tsv` | `토큰 ⇥ idf` | `센터 ⇥ 1.2` |
+| `overrides.tsv` | `패턴 ⇥ 동작 ⇥ 값 ⇥ 메모`. 동작: `role`(값 `ROLE` 또는 `ROLE/sense_id`), `keep`(한 span으로 유지), `split`(값: 공백으로 나눈 조각). 패턴이 `re:`로 시작하면 정규식 | `찾아줘 ⇥ role ⇥ ENTITY ⇥ 가게 이름` |
+
+한 표기가 여러 뜻을 가질 수 있습니다(`배` → 과일·선박·신체). 이런 모호한 표기를 거쳐 서로 다른 뜻이 합쳐지는 일은 없으며, 그런 별칭은 경고(`AliasWarning`)와 함께 무시됩니다.
+
+### 5. 예시 프리셋
+
+| 프리셋 | 들어 있는 것 |
+|---|---|
+| `preset:web` | 콘텐츠 범주어(가사, 레시피, 줄거리 …), 시즌·특별판 표지, HEAD 가중치 0.4 |
+| `preset:commerce` | 상품 범주어(케이스, 충전기 …), 배송·가격 조건, MODIFIER 가중치 0.9 |
+| `preset:local` | 업종 범주어, 지점 표지(점, 지점, `re:[a-z]점` …), 근접·영업 조건, 소수의 지역명, LOCATION 가중치 0.7 |
+
+프리셋은 출발점일 뿐입니다. 자기 도메인의 플러그인을 뒤에 쌓아 덮어쓰세요. 패키지 기본값 자체는 특정 도메인에 치우치지 않게 범용 어휘만 담고 있습니다.
+
+### 6. 평가
+
+자기 평가셋으로 튜닝 결과를 확인하는 `hanchi eval` 명령은 이후 마일스톤에서 추가됩니다.
 
 ## 라이선스
 

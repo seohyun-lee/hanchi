@@ -20,7 +20,7 @@ REFERENCE_INPUTS = [
     "건강센터",
     "센터필드",
     "강남센터필드",
-    "메가스터디학원 강남센터",
+    "서울대병원 강남센터",
     "강남 센터",
     "강남구 건강센터",
     "강남 센터필드",
@@ -79,7 +79,7 @@ def main() -> None:
     for s in WITH_DICT_INPUTS:
         print(f"{s:<28} -> {fmt(k, s)}")
     print("```\n")
-    print(f"space('강남센터필드메가스터디학원') -> {plain.space('강남센터필드메가스터디학원')}")
+    print(f"space('강남센터필드서울대병원') -> {plain.space('강남센터필드서울대병원')}")
 
 
 if __name__ == "__main__":

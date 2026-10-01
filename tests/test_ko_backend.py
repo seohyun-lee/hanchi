@@ -73,7 +73,7 @@ SNAPSHOT_PLAIN = {
     "건강센터": "건강/NNG 센터/NNG",
     "센터필드": "센터필드/NNG",
     "강남센터필드": "강남/NNP 센터/NNG 필드/NNG",
-    "메가스터디학원 강남센터": "메가스터디/NNP 학원/NNG 강남/NNP 센터/NNG",
+    "서울대병원 강남센터": "서울대병원/NNP 강남/NNP 센터/NNG",
     "강남 센터": "강남/NNP 센터/NNG",
     "강남구 건강센터": "강남구/NNP 건강/NNG 센터/NNG",
     "강남 센터필드": "강남/NNP 센터/NNG 필드/NNG",
@@ -101,5 +101,5 @@ def test_snapshot_with_user_dictionary(make_backend: MakeBackend, text: str, exp
 
 
 def test_space_snapshot(make_backend: MakeBackend) -> None:
-    # Plan §4.1 recorded "강남 센터필드 메가스터디 학원"; 0.24.0 actually splits 센터 필드.
-    assert make_backend().space("강남센터필드메가스터디학원") == "강남 센터 필드 메가스터디 학원"
+    # space() splits 센터 필드 even though tokenize() keeps 강남센터필드 together here.
+    assert make_backend().space("강남센터필드서울대병원") == "강남 센터 필드 서울대병원"

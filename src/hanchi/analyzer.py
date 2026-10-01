@@ -3,21 +3,24 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from hanchi.attach import attach
+from hanchi.config import load_yaml
 from hanchi.lang.ko import KoreanPack
 from hanchi.lattice import (
     Interpretation as WorkInterpretation,
 )
 from hanchi.lattice import (
+    WorkHypothesis,
     WorkSpan,
     assign_clauses,
     base_spans,
     entity_matches,
     interpretations,
-    split_location_qualifier,
+    refine_units,
 )
 from hanchi.normalize import NormalizedText
 from hanchi.resolver import ResolveContext, Resolver, RuleResolver
@@ -28,17 +31,31 @@ from hanchi.weights import RuleWeighter, Weighter
 PluginSpec = str | Path
 
 
+@dataclass(frozen=True)
+class Expansion:
+    term: str
+    sense_id: str
+    weight: float
+    relation: str
+    """synonym | hyponym (narrower than the query word) | hypernym (broader)."""
+    source: str
+    """The query span it expands."""
+
+
 class Analyzer:
     """Analyze short queries into spans with role hypotheses and weights.
 
-    ``plugins`` are applied in order after the package defaults (later wins).
-    Each is a directory or ``"preset:<name>"``.
+    Priority: ``overrides`` > ``plugins`` (in order, later wins) > package defaults.
+    Each plugin is a directory or ``"preset:<name>"``; ``overrides`` are extra
+    ``overrides.tsv``-format files applied last. See :meth:`from_config` to set all of
+    this from one YAML file.
     """
 
     def __init__(
         self,
         plugins: Iterable[PluginSpec] = (),
         *,
+        overrides: Iterable[PluginSpec] = (),
         lang: str = "ko",
         explain: bool = False,
         include_default: bool = True,
@@ -52,11 +69,42 @@ class Analyzer:
         self.pack = KoreanPack(dirs)
         self.explain = explain
         self.resources: Resources = load_resources(
-            specs, self._key, include_default=include_default
+            specs, self._key, include_default=include_default, override_files=overrides
         )
         self.resolver: Resolver = resolver or RuleResolver()
         self.weighter: Weighter = weighter or RuleWeighter()
         self._inject_user_words()
+
+    @classmethod
+    def from_config(cls, path: PluginSpec, **kwargs: Any) -> Analyzer:
+        """Build an analyzer from a YAML file::
+
+            plugins: [preset:local, ./my_domain]   # relative to this file
+            overrides: [./hotfix/overrides.tsv]
+            include_default: true
+            explain: false
+
+        Switching domains then needs no code change: point to another config file.
+        """
+        cfg_path = Path(path).expanduser()
+        cfg = load_yaml(cfg_path)
+        base = cfg_path.parent
+
+        def resolve(p: str) -> str:
+            if p.startswith("preset:") or Path(p).expanduser().is_absolute():
+                return p
+            return str((base / p).resolve())
+
+        options: dict[str, Any] = {
+            "plugins": [resolve(str(p)) for p in cfg.get("plugins", [])],
+            "overrides": [resolve(str(p)) for p in cfg.get("overrides", [])],
+            "include_default": bool(cfg.get("include_default", True)),
+            "explain": bool(cfg.get("explain", False)),
+            "lang": str(cfg.get("lang", "ko")),
+        }
+        options.update(kwargs)
+        plugins = options.pop("plugins")
+        return cls(plugins, **options)
 
     # --- setup --------------------------------------------------------------------
 
@@ -80,7 +128,7 @@ class Analyzer:
         nt = self.pack.normalize(text)
         seg = self.pack.segment(nt)
         units = self.pack.units(seg, res)
-        units = split_location_qualifier(units, nt.text, res)
+        units = refine_units(units, nt.text, res)
         spans = base_spans(units, nt.text, res)
 
         breaks = self._breaks(spans, units)
@@ -97,6 +145,7 @@ class Analyzer:
         for it in interps:
             assign_clauses(it.spans, breaks, correction)
             self.resolver.resolve(it.spans, res, ctx)
+            self._apply_role_overrides(it.spans)
 
         built = [self._build(it, nt) for it in interps]
         top = built[0]
@@ -143,6 +192,48 @@ class Analyzer:
                     ctx.retry_after_clause = 0
         return ctx
 
+    def _apply_role_overrides(self, spans: list[WorkSpan]) -> None:
+        """``role`` overrides replace whatever the resolver decided."""
+        for s in spans:
+            o = self.resources.override_for(s.key, "role")
+            if o is None:
+                continue
+            role, _, sense_id = o.value.partition("/")
+            sense = self.resources.senses.get(sense_id) if sense_id else None
+            h = WorkHypothesis(role.upper(), sense_id or None, sense.type if sense else None)
+            h.add("override", 0.0, f"override:{o.note or o.source}")
+            h.p = 1.0
+            s.hyps = [h]
+
+    # --- expansion ----------------------------------------------------------------
+
+    def expand(self, analysis: Analysis) -> list[Expansion]:
+        """Synonym / hierarchy expansion for spans whose sense is resolved.
+
+        Ambiguous spans are never expanded (a wrong sense would add wrong terms).
+        """
+        res = self.resources
+        coef = res.setting("expand")
+        out: list[Expansion] = []
+        for s in analysis.spans:
+            h = s.resolved
+            if h is None or not h.sense_id or h.sense_id not in res.senses:
+                continue
+            relations = (
+                ("synonym", res.synonyms.get(h.sense_id, set())),
+                ("hyponym", res.hyponyms.get(h.sense_id, set())),
+                ("hypernym", res.hypernyms.get(h.sense_id, set())),
+            )
+            for relation, targets in relations:
+                for sid in sorted(targets):
+                    target = res.senses.get(sid)
+                    if target is None:
+                        continue
+                    weight = round(h.weight * float(coef[relation]), 6)
+                    out.append(Expansion(target.canonical, sid, weight, relation, s.text))
+        out.sort(key=lambda e: -e.weight)
+        return out
+
     # --- output -------------------------------------------------------------------
 
     def _build(self, it: WorkInterpretation, nt: NormalizedText) -> Interpretation:
@@ -170,7 +261,14 @@ class Analyzer:
             span = self._span(ws, nt, hyps, best if best.p >= tau else None)
             span.attach = attached.get(i)
             out.append(span)
-        return Interpretation(p=round(it.p, 6), score=it.score, spans=out, merges=it.merges)
+        merges = []
+        for m in it.merges:
+            start, end = cast("tuple[int, int]", m["offsets"])
+            s, e = nt.to_original(start, end)
+            merges.append(
+                {k: v for k, v in m.items() if k != "offsets"} | {"text": nt.original[s:e]}
+            )
+        return Interpretation(p=round(it.p, 6), score=it.score, spans=out, merges=merges)
 
     def _span(
         self, ws: WorkSpan, nt: NormalizedText, hyps: list[Hypothesis], resolved: Hypothesis | None

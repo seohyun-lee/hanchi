@@ -12,4 +12,12 @@ except PackageNotFoundError:  # running from a source tree without installation
 from hanchi.analyzer import Analyzer
 from hanchi.schema import Analysis, Hypothesis, Interpretation, Span
 
-__all__ = ["Analysis", "Analyzer", "Hypothesis", "Interpretation", "Span", "__version__"]
+__all__ = [
+    "Analysis",
+    "Analyzer",
+    "Expansion",
+    "Hypothesis",
+    "Interpretation",
+    "Span",
+    "__version__",
+]
