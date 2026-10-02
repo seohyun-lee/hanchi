@@ -58,12 +58,33 @@ hanchi eval -c my_search/eval.yaml                                     # 평가
 hanchi repl                                                            # 대화형 (:help)
 hanchi dict export --format kiwi -o out/                               # Kiwi 사용자 사전
 hanchi dict export --format nori -o out/                               # Elasticsearch/OpenSearch nori 사용자 사전
+hanchi dictgen run --sources ftc -o my_plugin/                         # 공공데이터로 개체 사전 갱신
 ```
 
 모든 명령은 `--config 설정.yaml`, `-p 플러그인`(여러 번), `--override overrides.tsv`를 받습니다.
 여러 쿼리를 한꺼번에 처리할 때는 파이썬에서 `Analyzer.analyze_batch(texts, workers=4)`를 쓰면 됩니다.
 
 nori 내보내기는 이름(개체·뜻 사전 표기)을 분해형 없이, 여러 명사로 된 범주어(`서비스센터 서비스 센터`)는 분해형과 함께 씁니다. `decompound_mode: mixed`와 함께 쓰는 것을 권장합니다.
+
+## 공공데이터로 사전 만들기 (선택 기능)
+
+`hanchi dictgen`은 공공데이터에서 개체 이름을 모아 플러그인 디렉토리를 갱신합니다. 지금은 공정거래위원회 가맹정보 브랜드 목록(data.go.kr)을 지원합니다.
+
+```bash
+export DATA_GO_KR_KEY=...   # 공공데이터포털 인증키
+export STDICT_KEY=...       # 표준국어대사전 오픈 API 인증키 (일반명사 확인용, --no-stdict로 생략 가능)
+hanchi dictgen run --sources ftc -o my_plugin/ --since last
+```
+
+수집 → 이름 정리(㈜·괄호 제거, 영문 병기는 별칭으로) → 기존 사전과 비교 → 판정 → 파일 기록 순서로 동작합니다.
+
+- 승인: 공정위에 등록된 브랜드 → `entities/ftc_brands.tsv` (영문 병기는 같은 개체의 다른 이름으로)
+- 보류: 표준국어대사전에 일반명사로 있는 이름(예: `사과`) → `review/ftc_held.tsv`
+- 검토: 너무 짧은 이름 등 → `review/ftc_review.tsv`
+- 리포트: `reports/dictgen-YYYYMMDD.md` (새 승인·검토·보류 목록, 지난 실행 이후 사라진 항목, 범주어 후보)
+
+API 주소·파라미터·응답 필드 이름은 `hanchi/dictgen/data/dictgen.yaml`에 있고 `--dictgen-config`로 덮어쓸 수 있습니다.
+표준국어대사전(CC BY-SA 2.0 KR) 조회 결과는 사용자 로컬 캐시(`~/.cache/hanchi/stdict/`, 출처·라이선스 기록)에만 저장되고, 플러그인 파일·리포트·이 저장소에는 들어가지 않습니다.
 
 ## 핵심 개념: 3층 모델
 

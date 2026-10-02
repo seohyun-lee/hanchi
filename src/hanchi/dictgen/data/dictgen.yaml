@@ -1,0 +1,69 @@
+# dictgen settings. Override with --config FILE (same keys; mappings merge).
+
+http:
+  timeout_seconds: 20
+  retries: 2
+  user_agent: "hanchi-dictgen"
+
+# 공정거래위원회_가맹정보_브랜드 목록 정보 제공 서비스 (data.go.kr 15125467).
+# The endpoint, parameter names and response field names below are NOT verified
+# against the live API yet: check them on the data.go.kr page and override here
+# if they differ. Everything the collector reads goes through this mapping.
+ftc:
+  key_env: DATA_GO_KR_KEY
+  url: "https://apis.data.go.kr/1130000/FftcBrandRlsInfo2_Service/getBrandinfo"
+  params:
+    key: serviceKey
+    page: pageNo
+    page_size: numOfRows
+    format: resultType
+    format_value: json
+    year: jngBizCrtraYr
+  page_size: 1000
+  max_pages: 200
+  # dotted paths into the JSON response
+  items_path: [items, item]
+  alt_items_paths:
+    - [response, body, items, item]
+    - [items]
+    - [data]
+  total_path: [totalCount]
+  alt_total_paths:
+    - [response, body, totalCount]
+  fields:
+    name: brandNm
+    id: brandMnno
+    category_large: indutyLclasNm
+    category_mid: indutyMlsfcNm
+    year: jngBizCrtraYr
+    company: corpNm
+  entity_type: brand
+
+# 표준국어대사전 open API (CC BY-SA 2.0 KR). Results are cached locally only
+# (~/.cache/hanchi/stdict/) and never written into plugin files or reports.
+stdict:
+  key_env: STDICT_KEY
+  url: "https://stdict.korean.go.kr/api/search.do"
+  params:
+    key: key
+    query: q
+    format: req_type
+    format_value: json
+  items_path: [channel, item]
+  word_field: word
+  pos_paths: [[pos], [sense, pos]]
+  # A candidate whose name is a headword with one of these parts of speech is held
+  # back (common words are risky to register as names).
+  hold_pos: ["명사"]
+  cache_dir: "~/.cache/hanchi/stdict"
+
+# Approval rules.
+judge:
+  auto_approve_sources: [ftc]      # registered with the FTC -> approved
+  min_store_count: 5               # (store-count sources, not implemented yet)
+  min_name_length: 2               # shorter names go to the review queue
+
+# Name statistics in the report.
+stats:
+  top_end_tokens: 30
+  min_end_token_count: 3

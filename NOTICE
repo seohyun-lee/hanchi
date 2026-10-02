@@ -22,3 +22,8 @@ Dictionary, Urimalsaem) are licensed under CC BY-SA 2.0 KR. Hanchi does not
 include or redistribute any data from these dictionaries. Optional features may
 query them at runtime and store results only in the user's local cache, with
 source and license recorded in each cache file.
+
+Public data used by the optional dictgen module (fetched by the user at runtime with
+their own API keys; not included in this repository or its packages):
+  - Korea Fair Trade Commission franchise brand list (data.go.kr 15125467),
+    usable without restriction per the provider's terms.
