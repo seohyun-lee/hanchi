@@ -43,7 +43,10 @@ dependencies = [
 
 [project.optional-dependencies]
 # Filled in by the milestones that need them (each new dependency gets a license check).
-neural = []
+neural = [
+    # MIT (FlagEmbedding 1.4.2); pulls torch (BSD-3) and transformers (Apache-2.0)
+    "FlagEmbedding>=1.2",
+]
 dictgen = []
 dev = [
     "pytest>=8",

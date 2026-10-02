@@ -18,8 +18,11 @@ from hanchi.resources import Resources
 
 
 class Weighter(Protocol):
-    def weigh(self, spans: list[WorkSpan], res: Resources) -> dict[int, list[float]]:
-        """Weight of each hypothesis, per span index."""
+    def weigh(
+        self, spans: list[WorkSpan], res: Resources, text: str = ""
+    ) -> dict[int, list[float]]:
+        """Weight of each hypothesis, per span index. ``text`` is the normalized query
+        the span offsets refer to."""
         ...
 
 
@@ -31,14 +34,28 @@ def base_weight(res: Resources, role: str) -> float:
 
 
 class RuleWeighter:
-    def weigh(self, spans: list[WorkSpan], res: Resources) -> dict[int, list[float]]:
+    """``raw = base[role] × factor(span)``, normalized within the query.
+
+    The default factor is the idf term. Subclasses replace :meth:`span_factors` to
+    bring in other evidence (e.g. learned term importance) and keep everything else.
+    """
+
+    def span_factors(self, spans: list[WorkSpan], res: Resources, text: str) -> list[float]:
         alpha = float(res.setting("weights", "alpha"))
-        cap = float(res.setting("weights", "cap"))
-        raw: dict[int, list[float]] = {}
-        for i, s in enumerate(spans):
+        out = []
+        for s in spans:
             idf = res.idf_norm(s.key)
-            factor = 1.0 if idf is None else alpha + (1 - alpha) * idf
-            raw[i] = [base_weight(res, h.role) * factor for h in s.hyps]
+            out.append(1.0 if idf is None else alpha + (1 - alpha) * idf)
+        return out
+
+    def weigh(
+        self, spans: list[WorkSpan], res: Resources, text: str = ""
+    ) -> dict[int, list[float]]:
+        cap = float(res.setting("weights", "cap"))
+        factors = self.span_factors(spans, res, text)
+        raw: dict[int, list[float]] = {
+            i: [base_weight(res, h.role) * factors[i] for h in s.hyps] for i, s in enumerate(spans)
+        }
 
         content = [i for i, s in enumerate(spans) if not s.is_function]
         if len(content) == 1:
