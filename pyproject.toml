@@ -96,3 +96,4 @@ ignore_missing_imports = true
 # Language data and tests intentionally contain full-width and look-alike characters.
 "tests/**" = ["RUF001", "RUF002", "RUF003"]
 "src/hanchi/lang/**" = ["RUF001", "RUF002", "RUF003"]
+"src/hanchi/dictgen/**" = ["RUF001"]

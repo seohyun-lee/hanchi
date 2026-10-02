@@ -11,6 +11,7 @@
     hanchi eval -c eval.yaml                         # Hit@1, MRR, role accuracy
     hanchi repl                                      # interactive
     hanchi dict export --format kiwi|nori -o out/    # dictionary export
+    hanchi dictgen run --sources ftc -o my_plugin/   # public-data dictionary update
 
 Every command accepts ``--config FILE`` (see :meth:`hanchi.Analyzer.from_config`),
 ``-p/--plugin DIR|preset:NAME`` (repeatable, applied after the config's plugins) and
@@ -77,6 +78,17 @@ def build_parser() -> argparse.ArgumentParser:
     _common(e)
     e.add_argument("--format", choices=["kiwi", "nori"], required=True)
     e.add_argument("-o", "--out", default=".", help="output directory")
+
+    p = sub.add_parser("dictgen", help="build entity dictionaries from public data")
+    gsub = p.add_subparsers(dest="dictgen_command", required=True)
+    g = gsub.add_parser("run", help="collect -> diff -> judge -> write plugin files + report")
+    _common(g)
+    g.add_argument("--sources", default="ftc", help="comma-separated sources (available: ftc)")
+    g.add_argument("-o", "--out", required=True, help="plugin directory to update")
+    g.add_argument("--since", choices=["last"], help="report entries not seen since the last run")
+    g.add_argument("--no-stdict", action="store_true", help="skip the dictionary headword check")
+    g.add_argument("--write-idf", action="store_true", help="write idf.tsv from collected names")
+    g.add_argument("--dictgen-config", help="YAML overriding dictgen settings (API fields …)")
 
     sub.add_parser(
         "eval", help="evaluate ranking / role cases (see hanchi eval -h)", add_help=False
@@ -342,6 +354,33 @@ def cmd_dict(args: argparse.Namespace, out: TextIO) -> int:
     return 0
 
 
+def cmd_dictgen(args: argparse.Namespace, out: TextIO) -> int:
+    from hanchi.dictgen.pipeline import run
+    from hanchi.dictgen.sources import MissingKeyError
+
+    a = _analyzer(args)
+    try:
+        results = run(
+            [s.strip() for s in args.sources.split(",") if s.strip()],
+            args.out,
+            a,
+            config=args.dictgen_config,
+            check_stdict=not args.no_stdict,
+            since_last=args.since == "last",
+            write_idf=args.write_idf,
+        )
+    except MissingKeyError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    for r in results:
+        print(
+            f"{r.source}: {len(r.candidates)} collected, {r.count('approved')} approved, "
+            f"{r.count('review')} to review, {r.count('held')} held -> {r.report}",
+            file=out,
+        )
+    return 0
+
+
 def main(
     argv: Sequence[str] | None = None, out: TextIO | None = None, inp: TextIO | None = None
 ) -> int:
@@ -364,6 +403,8 @@ def main(
         return cmd_repl(args, out, inp)
     if args.command == "dict":
         return cmd_dict(args, out)
+    if args.command == "dictgen":
+        return cmd_dictgen(args, out)
     parser.print_help(file=out)
     return 0
 
