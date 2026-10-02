@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from hanchi.attach import attach
+from hanchi.backends import make_resolver, make_weighter
 from hanchi.config import load_yaml
 from hanchi.lang.ko import KoreanPack
 from hanchi.lattice import (
@@ -62,8 +63,8 @@ class Analyzer:
         lang: str = "ko",
         explain: bool = False,
         include_default: bool = True,
-        resolver: Resolver | None = None,
-        weighter: Weighter | None = None,
+        resolver: Resolver | str | None = None,
+        weighter: Weighter | str | None = None,
     ) -> None:
         if lang != "ko":
             raise ValueError(f"unsupported language: {lang!r} (available: 'ko')")
@@ -74,6 +75,10 @@ class Analyzer:
         self.resources: Resources = load_resources(
             specs, self._key, include_default=include_default, override_files=overrides
         )
+        if isinstance(resolver, str):
+            resolver = make_resolver(resolver)
+        if isinstance(weighter, str):
+            weighter = make_weighter(weighter)
         self.resolver: Resolver = resolver or RuleResolver()
         self.weighter: Weighter = weighter or RuleWeighter()
         self._inject_user_words()
@@ -86,6 +91,7 @@ class Analyzer:
             overrides: [./hotfix/overrides.tsv]
             include_default: true
             explain: false
+            weighter: rule                         # or bge-m3, or a registered name
 
         Switching domains then needs no code change: point to another config file.
         ``extra_plugins=[...]`` are applied after the configured ones.
@@ -106,6 +112,9 @@ class Analyzer:
             "explain": bool(cfg.get("explain", False)),
             "lang": str(cfg.get("lang", "ko")),
         }
+        for backend in ("resolver", "weighter"):
+            if cfg.get(backend):
+                options[backend] = str(cfg[backend])
         extra = list(kwargs.pop("extra_plugins", ()))
         options.update(kwargs)
         plugins = list(options.pop("plugins")) + extra
@@ -281,7 +290,7 @@ class Analyzer:
     def _build(self, it: WorkInterpretation, nt: NormalizedText) -> Interpretation:
         res = self.resources
         tau = float(res.setting("threshold"))
-        weights = self.weighter.weigh(it.spans, res)
+        weights = self.weighter.weigh(it.spans, res, nt.text)
         attached = attach(it.spans, res)
         out: list[Span] = []
         for i, ws in enumerate(it.spans):

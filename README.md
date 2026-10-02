@@ -86,6 +86,36 @@ hanchi dictgen run --sources ftc -o my_plugin/ --since last
 API 주소·파라미터·응답 필드 이름은 `hanchi/dictgen/data/dictgen.yaml`에 있고 `--dictgen-config`로 덮어쓸 수 있습니다.
 표준국어대사전(CC BY-SA 2.0 KR) 조회 결과는 사용자 로컬 캐시(`~/.cache/hanchi/stdict/`, 출처·라이선스 기록)에만 저장되고, 플러그인 파일·리포트·이 저장소에는 들어가지 않습니다.
 
+## 학습형 백엔드와 데이터 보정 (선택 기능)
+
+판정(resolver)과 가중치(weighter)는 교체할 수 있습니다. 기본값은 규칙 기반(`rule`)입니다.
+
+```bash
+pip install "hanchi[neural]"     # FlagEmbedding + BAAI/bge-m3 (MIT), torch 포함이라 무겁습니다
+```
+
+```python
+a = Analyzer(
+    ["preset:local"], weighter="bge-m3"
+)  # 형태소 span별로 합친 bge-m3 lexical weight를 가중치에 반영
+```
+
+설정 파일에서는 `weighter: bge-m3`, CLI에서는 `--weighter bge-m3`를 씁니다. 직접 만든 백엔드는 `hanchi.backends.register_weighter("이름", factory)`로 등록합니다(`Weighter`·`Resolver` 프로토콜). `[neural]`을 설치하지 않아도 기본 동작에는 영향이 없습니다.
+
+같은 평가셋으로 백엔드를 비교합니다.
+
+```bash
+hanchi eval -c my_search/eval.yaml --weighter rule --weighter bge-m3
+```
+
+자기 데이터로 보정하는 도구(결과는 검토 후 플러그인에 넣습니다):
+
+| 명령 | 입력 포맷 | 결과 |
+|---|---|---|
+| `hanchi learn sense-prior --clicks clicks.tsv -o plugin/sense_prior.tsv` | `쿼리 ⇥ 클릭한 결과 이름 ⇥ 횟수 ⇥ vertical(선택)` | 동음이의어 뜻별 사전확률 |
+| `hanchi learn role-priors --labels role_feedback.tsv` | `쿼리 ⇥ span ⇥ ROLE ⇥ 횟수` | `rules.yaml`의 `priors` 제안값 |
+| `hanchi learn synonyms --lexicon head -o review.md` | 플러그인 어휘 (`[neural]` 필요) | 임베딩이 비슷한 단어 쌍 검토 목록 (자동 반영 안 함) |
+
 ## 핵심 개념: 3층 모델
 
 | 층 | 질문 | 값의 형태 | 담당 |

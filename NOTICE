@@ -13,6 +13,9 @@ Kiwi / kiwipiepy (Korean morphological analyzer)
   Hanchi depends on kiwipiepy>=0.24.0; earlier releases were distributed under
   the LGPL and are not used.
 
+Optional extra [neural] (not installed by default):
+  FlagEmbedding (MIT) and the BAAI/bge-m3 model (MIT), downloaded by the user.
+
 -------------------------------------------------------------------------------
 Data
 -------------------------------------------------------------------------------

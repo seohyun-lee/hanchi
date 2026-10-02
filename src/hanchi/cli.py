@@ -12,6 +12,7 @@
     hanchi repl                                      # interactive
     hanchi dict export --format kiwi|nori -o out/    # dictionary export
     hanchi dictgen run --sources ftc -o my_plugin/   # public-data dictionary update
+    hanchi learn sense-prior --clicks c.tsv -o p.tsv # calibrate from click logs
 
 Every command accepts ``--config FILE`` (see :meth:`hanchi.Analyzer.from_config`),
 ``-p/--plugin DIR|preset:NAME`` (repeatable, applied after the config's plugins) and
@@ -34,6 +35,7 @@ def _common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--config", help="analyzer config YAML (plugins, overrides …)")
     p.add_argument("-p", "--plugin", action="append", default=[], help="plugin dir or preset:NAME")
     p.add_argument("--override", action="append", default=[], help="overrides.tsv file")
+    p.add_argument("--weighter", help="weighter backend: rule (default), bge-m3, …")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -90,6 +92,24 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--write-idf", action="store_true", help="write idf.tsv from collected names")
     g.add_argument("--dictgen-config", help="YAML overriding dictgen settings (API fields …)")
 
+    p = sub.add_parser("learn", help="calibrate from user data / collect synonym candidates")
+    lsub = p.add_subparsers(dest="learn_command", required=True)
+    sp = lsub.add_parser("sense-prior", help="clicks.tsv -> sense_prior.tsv")
+    _common(sp)
+    sp.add_argument("--clicks", required=True, help="query ⇥ clicked ⇥ count ⇥ vertical")
+    sp.add_argument("-o", "--out", required=True, help="output sense_prior.tsv")
+    sp.add_argument("--smoothing", type=float, default=1.0)
+    rp = lsub.add_parser("role-priors", help="role_feedback.tsv -> suggested rules.yaml priors")
+    _common(rp)
+    rp.add_argument("--labels", required=True, help="query ⇥ span ⇥ ROLE ⇥ count")
+    rp.add_argument("--smoothing", type=float, default=1.0)
+    sy = lsub.add_parser("synonyms", help="embedding-similar lexicon terms -> review markdown")
+    _common(sy)
+    sy.add_argument("--lexicon", default="head", help="lexicon name (default: head)")
+    sy.add_argument("--threshold", type=float, default=0.8)
+    sy.add_argument("--top", type=int, default=200)
+    sy.add_argument("-o", "--out", required=True, help="output markdown file")
+
     sub.add_parser(
         "eval", help="evaluate ranking / role cases (see hanchi eval -h)", add_help=False
     )
@@ -100,10 +120,12 @@ def _analyzer(args: argparse.Namespace) -> Any:
     from hanchi.analyzer import Analyzer
 
     plugins = list(args.plugin)
-    overrides = list(args.override)
+    options: dict[str, Any] = {"overrides": list(args.override)}
+    if getattr(args, "weighter", None):
+        options["weighter"] = args.weighter
     if args.config:
-        return Analyzer.from_config(args.config, extra_plugins=plugins, overrides=overrides)
-    return Analyzer(plugins, overrides=overrides)
+        return Analyzer.from_config(args.config, extra_plugins=plugins, **options)
+    return Analyzer(plugins, **options)
 
 
 def _context(path: str | None) -> dict[str, Any] | None:
@@ -381,6 +403,32 @@ def cmd_dictgen(args: argparse.Namespace, out: TextIO) -> int:
     return 0
 
 
+def cmd_learn(args: argparse.Namespace, out: TextIO) -> int:
+    from hanchi import learn
+
+    a = _analyzer(args)
+    if args.learn_command == "sense-prior":
+        priors = learn.sense_prior_from_clicks(a, learn.read_clicks(args.clicks), args.smoothing)
+        path = learn.write_sense_prior(args.out, priors)
+        print(f"wrote {len(priors)} rows to {path}", file=out)
+    elif args.learn_command == "role-priors":
+        labels = learn.read_role_feedback(args.labels)
+        suggested = learn.role_prior_suggestions(a, labels, args.smoothing)
+        print("# suggested rules.yaml (review before use)", file=out)
+        print("priors:", file=out)
+        for role, value in suggested.items():
+            print(f"  {role}: {value}", file=out)
+    else:
+        from hanchi.neural.bge_m3 import BgeM3Encoder
+
+        terms = sorted(a.resources.lexicon.get(args.lexicon, {}))
+        encoder = BgeM3Encoder()
+        cands = learn.synonym_candidates(terms, encoder.dense, args.threshold, args.top)
+        path = learn.write_synonym_review(args.out, cands, f"lexicon:{args.lexicon}")
+        print(f"wrote {len(cands)} candidate pairs to {path}", file=out)
+    return 0
+
+
 def main(
     argv: Sequence[str] | None = None, out: TextIO | None = None, inp: TextIO | None = None
 ) -> int:
@@ -405,6 +453,8 @@ def main(
         return cmd_dict(args, out)
     if args.command == "dictgen":
         return cmd_dictgen(args, out)
+    if args.command == "learn":
+        return cmd_learn(args, out)
     parser.print_help(file=out)
     return 0
 

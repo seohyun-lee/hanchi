@@ -166,5 +166,10 @@ rank:
   part_match: 0.6                 # weight factor when a query meets pieces of a mixed-script name
   other_clause_factor: 0.5        # query spans outside the request clause count this much
 
+# Learned term importance (weighter "bge-m3" or any LexicalWeighter).
+neural:
+  alpha: 0.5                      # raw = base x idf x (alpha + (1 - alpha) x neural_norm)
+  pool: max                       # subword weights -> span: max | sum
+
 context:
   retry_similarity: 0.8           # prev_query vs first clause (1 - edit distance ratio)

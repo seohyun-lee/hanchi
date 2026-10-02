@@ -27,7 +27,7 @@ import argparse
 import json
 import sys
 import tempfile
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -184,9 +184,12 @@ def _from_json(obj: dict[str, Any], kind: str, base: Path, src: str) -> Case:
 class _Analyzers:
     """One analyzer per distinct (extra plugins, entities, aliases) combination."""
 
-    def __init__(self, base_plugins: Sequence[str], overrides: Sequence[str]) -> None:
+    def __init__(
+        self, base_plugins: Sequence[str], overrides: Sequence[str], options: Mapping[str, Any]
+    ) -> None:
         self.base = list(base_plugins)
         self.overrides = list(overrides)
+        self.options = dict(options)
         self._cache: dict[tuple[Any, ...], Analyzer] = {}
 
     def get(self, case: Case) -> Analyzer:
@@ -195,7 +198,7 @@ class _Analyzers:
             extra = list(case.plugins)
             if case.entities or case.aliases:
                 extra.append(_inline_plugin(case.entities, case.aliases))
-            self._cache[key] = Analyzer(self.base + extra, overrides=self.overrides)
+            self._cache[key] = Analyzer(self.base + extra, overrides=self.overrides, **self.options)
         return self._cache[key]
 
 
@@ -212,8 +215,10 @@ def evaluate(
     cases: Iterable[Case],
     plugins: Sequence[str] = (),
     overrides: Sequence[str] = (),
+    analyzer_options: Mapping[str, Any] | None = None,
 ) -> Report:
-    analyzers = _Analyzers(plugins, overrides)
+    """``analyzer_options`` are passed to :class:`Analyzer` (e.g. ``weighter="bge-m3"``)."""
+    analyzers = _Analyzers(plugins, overrides, analyzer_options or {})
     report = Report()
     for case in cases:
         a = analyzers.get(case)
@@ -258,13 +263,18 @@ def _check_role(a: Analyzer, case: Case) -> tuple[bool, str]:
     return ok, got
 
 
-def run_config(config: str | Path, case_files: Sequence[str | Path] = ()) -> Report:
+def run_config(
+    config: str | Path,
+    case_files: Sequence[str | Path] = (),
+    analyzer_options: Mapping[str, Any] | None = None,
+) -> Report:
     """Evaluate with an eval config YAML::
 
     plugins: [preset:local, ./plugin]      # relative to the config file
     overrides: []
     cases: [cases.tsv, cases.jsonl]        # ranking cases
     roles: [roles.tsv, roles.jsonl]        # role cases
+    weighter: rule                         # optional backend names
     """
     cfg_path = Path(config)
     cfg = load_yaml(cfg_path)
@@ -283,11 +293,21 @@ def run_config(config: str | Path, case_files: Sequence[str | Path] = ()) -> Rep
             cases += load_cases(base / f, "rank")
         for f in cfg.get("roles", []):
             cases += load_cases(base / f, "role")
+    options: dict[str, Any] = {k: str(cfg[k]) for k in ("resolver", "weighter") if cfg.get(k)}
+    options.update(analyzer_options or {})
     return evaluate(
         cases,
         [rel(p) for p in cfg.get("plugins", [])],
         [rel(p) for p in cfg.get("overrides", [])],
+        options,
     )
+
+
+def compare(
+    config: str | Path, weighters: Sequence[str], case_files: Sequence[str | Path] = ()
+) -> dict[str, Report]:
+    """Run the same evaluation once per weighter backend (e.g. ``["rule", "bge-m3"]``)."""
+    return {w: run_config(config, case_files, {"weighter": w}) for w in weighters}
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -299,16 +319,35 @@ def main(argv: Sequence[str] | None = None) -> int:
     ap.add_argument("--min-mrr", type=float, help="exit 1 if MRR is below this")
     ap.add_argument("--min-role", type=float, help="exit 1 if role accuracy is below this")
     ap.add_argument("--json", action="store_true", help="print metrics as JSON")
+    ap.add_argument(
+        "--weighter",
+        action="append",
+        default=[],
+        help="weighter backend; give several to compare them (needs --config)",
+    )
     args = ap.parse_args(argv)
 
+    if len(args.weighter) > 1:
+        if not args.config:
+            ap.error("comparing weighters needs --config")
+        reports = compare(args.config, args.weighter, args.files)
+        if args.json:
+            print(json.dumps({w: r.metrics() for w, r in reports.items()}))
+        else:
+            print(f"{'weighter':<12} {'hit@1':>7} {'mrr':>7} {'roles':>7}")
+            for w, r in reports.items():
+                m = r.metrics()
+                print(f"{w:<12} {m['hit@1']:>7.3f} {m['mrr']:>7.3f} {m['role_accuracy']:>7.3f}")
+        return 0
+    options = {"weighter": args.weighter[0]} if args.weighter else {}
     if args.config:
-        report = run_config(args.config, args.files)
+        report = run_config(args.config, args.files, options)
     else:
         cases: list[Case] = []
         for f in args.files:
             kind = "role" if Path(f).stem.startswith("role") else "rank"
             cases += load_cases(f, kind)
-        report = evaluate(cases, args.plugin)
+        report = evaluate(cases, args.plugin, (), options)
     print(json.dumps(report.metrics()) if args.json else report.summary())
     m = report.metrics()
     below = (
