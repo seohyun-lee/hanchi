@@ -1,0 +1,9 @@
+# type_a	type_b	score
+company	finance	2.5
+company	store_word	2.5
+title	title_info	2.5
+organism	remedy	2.5
+vehicle	repair	2.0
+food	repair	-1.5
+body	repair	-1.5
+food	quantity	2.0

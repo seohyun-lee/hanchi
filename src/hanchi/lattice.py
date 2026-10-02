@@ -219,6 +219,8 @@ def _is_namey(units: Sequence[Unit], j: int, text: str, res: Resources) -> bool:
         return False
     u = units[j]
     key = _key(res, text[u.start : u.end])
+    if res.in_lexicon("location", key):
+        return False  # "강남 스포츠센터": a place, not a name, comes before
     return u.has(MIXED_SCRIPT) or u.has(PROPER) or key in res.entities
 
 

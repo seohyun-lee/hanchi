@@ -9,7 +9,8 @@ try:
 except PackageNotFoundError:  # running from a source tree without installation
     __version__ = "0.0.0"
 
-from hanchi.analyzer import Analyzer
+from hanchi.analyzer import Analyzer, Expansion
+from hanchi.rank import Ranking, RankResult
 from hanchi.schema import Analysis, Hypothesis, Interpretation, Span
 
 __all__ = [
@@ -18,6 +19,8 @@ __all__ = [
     "Expansion",
     "Hypothesis",
     "Interpretation",
+    "RankResult",
+    "Ranking",
     "Span",
     "__version__",
 ]

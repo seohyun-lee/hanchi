@@ -38,6 +38,9 @@ r = a.analyze("강남 방탈출 찾아줘 왜 안나와")
 r.signals  # [{'type': 'dissatisfaction', 'span': '왜 안나와', 'clause_id': 1}]
 r.interpretations  # 분절 해석별 확률 (예: '강남 방탈출'을 한 이름으로 읽는 해석)
 a.analyze("나를 찾아줘", explain=True).explain  # 특징별 기여도
+
+ranking = a.rank("강남 카페", ["강남 카페 라떼", "홍대 카페"])  # 검색 결과 후보 재정렬
+ranking.names(), ranking.mode  # (['강남 카페 라떼', '홍대 카페'], 'strict')
 ```
 
 `Span.resolved`는 가장 높은 가설의 확률이 임계값(기본 0.9) 이상일 때만 채워집니다. 그렇지 않으면 `hypotheses`에 남은 모든 해석을 보고 검색 쪽에서 해석별로 시도하면 됩니다.
@@ -165,9 +168,29 @@ TSV는 탭 구분, `#`으로 시작하는 줄은 주석입니다.
 
 프리셋은 출발점일 뿐입니다. 자기 도메인의 플러그인을 뒤에 쌓아 덮어쓰세요. 패키지 기본값 자체는 특정 도메인에 치우치지 않게 범용 어휘만 담고 있습니다.
 
-### 6. 평가
+### 6. 내 평가셋으로 확인하기
 
-자기 평가셋으로 튜닝 결과를 확인하는 `hanchi eval` 명령은 이후 마일스톤에서 추가됩니다.
+평가셋은 레포 밖 어디에 있어도 됩니다. 설정 파일에 플러그인과 케이스 파일을 적고 실행합니다.
+
+```yaml
+# my_search/eval.yaml
+plugins: [preset:local, ./plugin]
+cases: [cases.tsv, cases.jsonl]   # 순위 평가: Hit@1, MRR
+roles: [roles.tsv]                # 역할 평가: 정확도
+```
+
+```bash
+hanchi eval -c my_search/eval.yaml                # 점수와 실패 사례
+hanchi eval -c my_search/eval.yaml --min-hit1 0.9 # 기준 미달이면 exit 1 (CI용)
+```
+
+| 파일 | 포맷 |
+|---|---|
+| `cases.tsv` | `쿼리 ⇥ 후보1｜후보2｜… ⇥ 정답(｜로 복수 가능) ⇥ 도메인: 메모` |
+| `cases.jsonl` | `{"query", "candidates": [문자열 또는 {"name", "category", "location"}], "expected_top1", "entities": [[이름, 타입]], "plugins": [...], "context": {...}}` |
+| `roles.tsv` | `쿼리 ⇥ span ⇥ 기대 역할(ROLE, ROLE/sense_id, none) ⇥ 메모` |
+
+공개 범용 평가셋은 [`eval/`](eval/)에 있습니다.
 
 ## 라이선스
 

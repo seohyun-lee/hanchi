@@ -29,12 +29,14 @@ from hanchi.schema import (
     QUALIFIER,
 )
 from hanchi.units import (
+    ADNOMINAL,
     INTERROGATIVE,
     LOCATION_GUESS,
     MIXED_SCRIPT,
     NEGATIVE_PREDICATE,
     PROPER,
     QUANTITY,
+    QUESTION_FORM,
     REQUEST_FORM,
 )
 
@@ -133,7 +135,8 @@ class _View:
         return s.entity_merge is not None or s.key in self.res.entities
 
     def is_request(self, i: int) -> bool:
-        return self.spans[i].has(REQUEST_FORM) or "command" in self.lex[i]
+        s = self.spans[i]
+        return s.has(REQUEST_FORM) or s.has(QUESTION_FORM) or "command" in self.lex[i]
 
     def types_of(self, i: int) -> set[str]:
         s = self.spans[i]
@@ -199,7 +202,7 @@ def _score(
     role = h.role
 
     if role == ENTITY:
-        _entity_features(i, span, h, v, res, fire, prev, nxt)
+        _entity_features(i, span, h, v, res, fire, prev, nxt, ctx)
     elif role == COMMAND:
         if v.is_request(i):
             if v.is_last_content_in_clause(i):
@@ -241,6 +244,8 @@ def _score(
         n = v.np_next(i)
         if n is not None and not lex and not span.has(PROPER) and "head" in v.lex[n]:
             fire("before_head", "position:before_head")
+        if span.has(ADNOMINAL) and nxt is not None and v.spans[nxt].is_nominal_like:
+            fire("adnominal", "rule:adnominal_predicate")
     elif role == FUNC:
         fire("function_form", "pos:function")
     elif role == META:
@@ -262,6 +267,7 @@ def _entity_features(
     fire: Fire,
     prev: int | None,
     nxt: int | None,
+    ctx: ResolveContext,
 ) -> None:
     key = span.key
     min_prefix = int(res.setting("lattice", "min_prefix_len"))
@@ -276,9 +282,17 @@ def _entity_features(
             fire("before_command", "context:before_command")
     else:
         longer = res.entity_keys_with_prefix(key) if len(key) >= min_prefix else set()
-        if longer:
+        single = span.base_range[1] - span.base_range[0] == 1
+        inside = ctx.inside_entities.get(span.base_range[0]) if single else None
+        if inside is not None:
+            # The longer name is in the query; the reading that merges it carries that
+            # evidence, so this part does not count again.
+            fire("entity_part_of_query_name", f"entity_dict(inside:{inside})")
+        elif longer:
             name = min(longer, key=len)
-            fire("entity_prefix", f"entity_dict:{res.entities[name][0].source}(prefix:{name})")
+            evidence = f"entity_dict:{res.entities[name][0].source}(prefix:{name})"
+            # A word the lexicons already know (서울 = place) is weaker evidence of a name.
+            fire("entity_prefix_lexical" if v.lex[i] else "entity_prefix", evidence)
         elif any(True for _ in res.entity_keys_containing(key)):
             name = next(iter(res.entity_keys_containing(key)))
             fire("entity_common_part", f"entity_dict(common_part:{name})")

@@ -27,12 +27,14 @@ from hanchi.lang.ko.tags import base_tag, tag_info
 from hanchi.resources import Resources
 from hanchi.segment import Segmentation
 from hanchi.units import (
+    ADNOMINAL,
     FINAL_ENDING,
     INTERROGATIVE,
     MIXED_SCRIPT,
     NEGATIVE_PREDICATE,
     PROPER,
     QUANTITY,
+    QUESTION_FORM,
     REQUEST_FORM,
     Unit,
     UnitKind,
@@ -224,6 +226,14 @@ def _traits(d: _Draft, pat: Mapping[str, Any]) -> None:
             d.traits.add(REQUEST_FORM)
         if base_tag(last.tag) == "EF" and last.form in endings:
             d.traits.add(REQUEST_FORM)
+        q_stems = set(pat.get("question_stems", []))
+        q_endings = set(pat.get("question_endings", []))
+        if any(m.form in q_stems for m in d.morphs) or (
+            base_tag(last.tag) == "EF" and last.form in q_endings
+        ):
+            d.traits.add(QUESTION_FORM)
+        if base_tag(last.tag) == "ETM":
+            d.traits.add(ADNOMINAL)
         negative = set(pat.get("negative_stems", []))
         if any(m.form in negative and base_tag(m.tag) in ("VA", "VCN") for m in d.morphs):
             d.traits.add(NEGATIVE_PREDICATE)

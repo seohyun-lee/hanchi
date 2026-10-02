@@ -21,6 +21,12 @@ request_aux_endings: ["어", "아", "어요", "아요", "세요", "라", "어라
 # without an auxiliary ("찾으세요").
 request_endings: ["세요", "으세요", "십시오", "으십시오"]
 
+# A predicate asking a question works like a request for information
+# ("서울 날씨 어때", "영업시간 언제야"): its stem is one of these …
+question_stems: ["어떻", "어떠하", "뭐", "무엇", "어디", "언제", "누구", "얼마", "몇"]
+# … or it ends with one of these final endings ("있나요", "하니", "할까").
+question_endings: ["니", "냐", "나", "나요", "까", "ᆯ까", "을까", "ᆸ니까", "습니까", "어요?"]
+
 # Clause boundaries.
 clause_break:
   # Always start a new clause after sentence punctuation (SF).

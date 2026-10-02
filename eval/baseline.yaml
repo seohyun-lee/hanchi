@@ -1,0 +1,7 @@
+# Minimum scores for the public evaluation set (tests/test_eval.py fails below these).
+# Measured 2026-10-02: hit@1 1.000, mrr 1.000, role_accuracy 1.000 (61 ranking / 42 role cases).
+# The set was written while calibrating the rules, so these numbers are optimistic;
+# the thresholds leave room for a couple of cases to change.
+hit@1: 0.95
+mrr: 0.97
+role_accuracy: 0.95
