@@ -1,0 +1,26 @@
+# A small hand-picked list of place names (not exhaustive).
+서울
+부산
+대구
+인천
+광주
+대전
+울산
+강남
+강남구
+강남역
+서초
+서초구
+역삼
+역삼역
+삼성동
+대치
+대치동
+신촌
+홍대
+잠실
+여의도
+판교
+분당
+해운대
+서면

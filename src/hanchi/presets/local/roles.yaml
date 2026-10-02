@@ -1,0 +1,3 @@
+# Place search: where something is matters more than in general search.
+weights:
+  LOCATION: 0.7

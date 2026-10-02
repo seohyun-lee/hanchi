@@ -1,0 +1,8 @@
+# Branch markers: "<place>점", "<place>센터", "<place>R점" (re: = regular expression).
+점
+지점
+본점
+직영점
+센터
+캠퍼스
+re:[a-z]점
