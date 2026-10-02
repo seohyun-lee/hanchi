@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -87,6 +88,7 @@ class Analyzer:
             explain: false
 
         Switching domains then needs no code change: point to another config file.
+        ``extra_plugins=[...]`` are applied after the configured ones.
         """
         cfg_path = Path(path).expanduser()
         cfg = load_yaml(cfg_path)
@@ -104,8 +106,9 @@ class Analyzer:
             "explain": bool(cfg.get("explain", False)),
             "lang": str(cfg.get("lang", "ko")),
         }
+        extra = list(kwargs.pop("extra_plugins", ()))
         options.update(kwargs)
-        plugins = options.pop("plugins")
+        plugins = list(options.pop("plugins")) + extra
         return cls(plugins, **options)
 
     # --- setup --------------------------------------------------------------------
@@ -164,6 +167,30 @@ class Analyzer:
             interpretations=built,
             explain=self._explain(interps[0], built) if explain else None,
         )
+
+    def analyze_batch(
+        self,
+        texts: Iterable[str],
+        workers: int = 1,
+        context: Mapping[str, Any] | None = None,
+        explain: bool | None = None,
+    ) -> list[Analysis]:
+        """Analyze many texts, in order, using up to ``workers`` threads."""
+        items = list(texts)
+        if workers <= 1 or len(items) <= 1:
+            return [self.analyze(t, context=context, explain=explain) for t in items]
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            return list(
+                pool.map(lambda t: self.analyze(t, context=context, explain=explain), items)
+            )
+
+    @staticmethod
+    def to_dict(analysis: Analysis) -> dict[str, Any]:
+        return analysis.to_dict()
+
+    @staticmethod
+    def to_json(analysis: Analysis, **kwargs: Any) -> str:
+        return analysis.to_json(**kwargs)
 
     def _breaks(self, spans: list[WorkSpan], units: list[Any]) -> set[int]:
         unit_breaks = self.pack.clause_breaks(units)

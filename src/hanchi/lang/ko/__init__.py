@@ -48,20 +48,27 @@ class KoreanPack:
     def kind_label(self, kind: str) -> str:
         return str(self._patterns.get("kind_labels", {}).get(kind, kind))
 
-    def register_names(self, names: Iterable[str]) -> None:
-        """Register single-word, purely nominal names with Kiwi as proper nouns.
+    def registrable_names(self, names: Iterable[str]) -> list[str]:
+        """The names that should be registered with Kiwi as proper nouns.
 
-        Names Kiwi reads as predicates ("찾아줘", "안나와") or that mix scripts ("gs25")
-        are left alone: the role layer handles them, and registering would hide their
-        grammatical reading or their parts.
+        Only single-word, purely nominal names. Names Kiwi reads as predicates
+        ("찾아줘", "안나와") or that mix scripts ("gs25") are left alone: the role layer
+        handles them, and registering would hide their grammatical reading or parts.
         """
+        out: list[str] = []
         for raw in names:
             name = self.normalize(raw).text
-            if " " in name or any(ch.isascii() and ch.isalnum() for ch in name):
+            if not name or " " in name or any(ch.isascii() and ch.isalnum() for ch in name):
                 continue
             morphs = self._backend.tokenize(name)
-            if morphs and all(tag_info(m.tag).pos_class.is_nominal for m in morphs):
-                self._backend.add_user_word(name, "NNP")
+            nominal = morphs and all(tag_info(m.tag).pos_class.is_nominal for m in morphs)
+            if nominal and name not in out:
+                out.append(name)
+        return out
+
+    def register_names(self, names: Iterable[str]) -> None:
+        for name in self.registrable_names(names):
+            self._backend.add_user_word(name, "NNP")
 
     def pos_detail(self, morphs: Sequence[tuple[str, str]]) -> str:
         if len(morphs) == 1:
