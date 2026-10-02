@@ -42,6 +42,8 @@ lexicon_roles:
 # A unit trait (set by the language pack) adds that role as a candidate.
 trait_roles:
   request_form: COMMAND
+  question_form: COMMAND          # asking is requesting information
+  adnominal: MODIFIER
   negative_predicate: META
   interrogative: META
   quantity: CONSTRAINT
@@ -52,7 +54,9 @@ features:
   ENTITY:
     entity_full: 4.0              # span text equals an entity name
     entity_prefix: 1.5            # span is the beginning of an entity name
+    entity_prefix_lexical: 0.5    # ... but is also a lexicon word (서울 -> 서울대병원)
     entity_common_part: 0.0       # span only matches a non-initial part of a name (no evidence)
+    entity_part_of_query_name: 0.0  # span is part of a longer name found in this query
     proper_noun: 1.0              # tagged as a proper noun
     mixed_script: 2.0             # digits/letters glued to a noun: 연세365의원
     mixed_ends_with_head: 1.5     # … and ending in a category word: …의원
@@ -60,10 +64,11 @@ features:
     adjacent_location: 1.5        # (dictionary names only) next to a LOCATION
     before_command: 2.0           # (dictionary names only) right before a request
   COMMAND:
-    request_clause_final: 3.0     # request form or command word at the end of its clause
+    request_clause_final: 3.0     # request / question form or command word ending its clause
     request_not_final: 0.0
     after_nominal: 1.0            # preceded by a noun-like span
-    in_entity_full: -3.0          # inside a longer entity name present in the query
+    in_entity_full: 0.0           # inside a longer entity name present in the query (that
+                                  # reading is a separate interpretation; plan value -3.0)
   QUALIFIER:
     qualifier_after_location: 3.0 # word-final marker after a location/name in the same word
   HEAD:
@@ -78,6 +83,7 @@ features:
     quantity: 2.5                 # number + unit: 2개
   MODIFIER:
     before_head: 1.5              # noun right before a category word
+    adnominal: 1.5                # predicate modifying the next noun: 맛있는 (식당)
   FUNC:
     function_form: 5.0
   META:
@@ -136,6 +142,29 @@ expand:
   synonym: 0.95                   # same meaning (synonyms.tsv)
   hyponym: 0.7                    # query is broader: 맛집 -> 식당
   hypernym: 0.4                   # query is narrower: 식당 -> 맛집
+
+# Ranking helper (Analyzer.rank).
+rank:
+  min_results: 1                  # k: below this many strict matches, relax
+  max_ambiguous_spans: 3          # unresolved spans whose alternatives are tried
+  hypotheses_per_span: 2          # alternatives tried per unresolved span
+  min_reading_p: 0.001            # skip readings less likely than this
+  match_exact: 1.0
+  match_prefix: 0.9               # query span starts the candidate span (len >= min_prefix_len)
+  match_partial: 0.3              # inside / tail only; also the cap for a name meeting a common part
+  sense_mismatch: 0.5             # candidate word has other senses than the query reading
+  full_name_bonus: 1.0            # candidate name equals a query span (or the whole query) ...
+  cover_min_weight: 0.2           # ... and matches every query span at least this heavy
+  unmatched_penalty: 0.3          # x weight of each unmatched ENTITY / MODIFIER candidate span
+  head_mismatch_penalty: 1.0      # x weight of each query category the candidate lacks (if it has its own)
+  strict_min_weight: 0.5          # query spans at least this heavy are required in strict mode
+  strict_match: 0.9               # a required span counts as matched at or above this
+  tier_min_entity_p: 0.2          # name hypothesis needed for the whole-name tier
+  diversify_after: 3              # main-sense results shown before other senses are mixed in
+  diversify_per_sense: 2          # results mixed in per other sense
+  doc_sense_ratio: 0.5            # candidate word senses kept: p >= ratio x best p
+  part_match: 0.6                 # weight factor when a query meets pieces of a mixed-script name
+  other_clause_factor: 0.5        # query spans outside the request clause count this much
 
 context:
   retry_similarity: 0.8           # prev_query vs first clause (1 - edit distance ratio)

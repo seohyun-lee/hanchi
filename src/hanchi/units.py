@@ -43,6 +43,8 @@ NEGATIVE_PREDICATE = "negative_predicate"
 INTERROGATIVE = "interrogative"
 MIXED_SCRIPT = "mixed_script"
 QUANTITY = "quantity"
+QUESTION_FORM = "question_form"  # 어때, 뭐야, 있나요
+ADNOMINAL = "adnominal"  # predicate modifying the next noun: 맛있는 (식당)
 LOCATION_GUESS = "location_guess"  # set by the core: unknown X in "<name> X점"
 
 

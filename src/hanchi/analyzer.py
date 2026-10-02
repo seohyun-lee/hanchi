@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
@@ -23,6 +23,8 @@ from hanchi.lattice import (
     refine_units,
 )
 from hanchi.normalize import NormalizedText
+from hanchi.rank import Candidate, Ranking
+from hanchi.rank import rank as rank_candidates
 from hanchi.resolver import ResolveContext, Resolver, RuleResolver
 from hanchi.resources import Resources, load_resources, resolve_plugin
 from hanchi.schema import FUNC, META, Analysis, Hypothesis, Interpretation, Span
@@ -204,6 +206,19 @@ class Analyzer:
             h.add("override", 0.0, f"override:{o.note or o.source}")
             h.p = 1.0
             s.hyps = [h]
+
+    # --- ranking ------------------------------------------------------------------
+
+    def rank(
+        self,
+        query: str | Analysis,
+        candidates: Sequence[Candidate],
+        *,
+        k: int | None = None,
+        context: Mapping[str, Any] | None = None,
+    ) -> Ranking:
+        """Order candidate names for a query (see :mod:`hanchi.rank`)."""
+        return rank_candidates(self, query, candidates, k=k, context=context)
 
     # --- expansion ----------------------------------------------------------------
 

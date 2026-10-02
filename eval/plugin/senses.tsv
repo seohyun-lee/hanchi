@@ -1,0 +1,15 @@
+# sense_id	canonical	role	type	note
+apple_inc	애플	ENTITY	company
+apple_fruit	사과	HEAD	food
+apple_pie	애플파이	HEAD	food
+pear	배	HEAD	food
+ship	배	HEAD	vehicle
+belly	배	HEAD	body
+parasite_film	기생충	ENTITY	title
+parasite_bio	기생충	HEAD	organism
+repair	수리	HEAD	repair
+plot	줄거리	HEAD	title_info
+cast	출연진	HEAD	title_info
+ending	결말	HEAD	title_info
+stock	주가	HEAD	finance
+extermination	박멸	HEAD	remedy

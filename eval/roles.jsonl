@@ -1,0 +1,7 @@
+{"query": "강남 방탈출 찾아줘 안나와", "span": "안나와", "expected": "none", "entities": [["안나와", "store"]], "domain": "command", "note": "META·ENTITY 모호 (11.8)"}
+{"query": "강남 안나와", "span": "안나와", "expected": "ENTITY", "entities": [["안나와", "store"]], "domain": "place", "note": "지역 + 이름 (11.8)"}
+{"query": "안나오네 강남점", "span": "안나오네", "expected": "ENTITY", "entities": [["안나오네", "store"]], "domain": "place", "note": "지점 표지가 이름 구조 확정 (11.8)"}
+{"query": "강남 안나와 찾아줘", "span": "안나와", "expected": "ENTITY", "entities": [["안나와", "store"]], "domain": "command", "note": "COMMAND 앞 명사 자리 (11.8)"}
+{"query": "강남 방탈출 찾아줘", "span": "찾아줘", "expected": "none", "entities": [["찾아줘", "store"]], "domain": "command", "note": "H3 개체 존재 (1.3)"}
+{"query": "애플", "span": "애플", "expected": "ENTITY/apple_inc", "plugins": ["prior_web"], "domain": "web", "note": "도메인 사전확률 (12.8)"}
+{"query": "애플", "span": "애플", "expected": "none", "domain": "web", "note": "사전확률 없음 → 모호 (12.8)"}

@@ -15,6 +15,15 @@ from hanchi.lang.ko.tags import tag_info
 _DATA = "hanchi.lang.ko.data"
 
 
+_SHARED: list[Kiwi] = []
+
+
+def _shared_kiwi() -> Kiwi:
+    if not _SHARED:
+        _SHARED.append(Kiwi())
+    return _SHARED[0]
+
+
 def load_backend_config(plugin_dirs: Iterable[str | Path] = ()) -> dict[str, Any]:
     return layered(_DATA, "backend.yaml", plugin_dirs)
 
@@ -32,7 +41,10 @@ class KiwiBackend:
         self._typos: str | None = cfg.get("typos")
         self._typo_cost_threshold: float = float(cfg["typo_cost_threshold"])
         self.despaced_variant: bool = bool(cfg.get("despaced_variant", True))
-        self._kiwi = kiwi if kiwi is not None else Kiwi()
+        # Without user words every backend can share one loaded model (loading takes
+        # about a second); the first add_user_word gives this backend its own copy.
+        self._kiwi = kiwi if kiwi is not None else _shared_kiwi()
+        self._owns_kiwi = kiwi is not None
         self._user_words: set[str] = set()
 
     @property
@@ -44,6 +56,9 @@ class KiwiBackend:
         return frozenset(self._user_words)
 
     def add_user_word(self, word: str, tag: str = "NNP", score: float | None = None) -> bool:
+        if not self._owns_kiwi:
+            self._kiwi = Kiwi()
+            self._owns_kiwi = True
         added = bool(self._kiwi.add_user_word(word, tag, self._score if score is None else score))
         self._user_words.add(word)
         return added

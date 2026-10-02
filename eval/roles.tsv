@@ -1,0 +1,36 @@
+# query	span	expected (ROLE | ROLE/sense | none)	domain: note
+강남역 카페 찾아줘	찾아줘	COMMAND	command: 문장 끝 요청
+지금 영업중인 식당 찾아줘	지금	CONSTRAINT	command: 시간 조건
+지금 영업중인 식당 찾아줘	영업중	CONSTRAINT	command: 상태 조건
+지금 영업중인 식당 찾아줘	식당	HEAD	command: 업종
+나를 찾아줘 예매	나를 찾아줘	ENTITY	web: 제목
+나를 찾아줘	나를 찾아줘	none	web: 진짜 모호
+건강센터	건강	MODIFIER	place: 수식어
+건강센터	센터	HEAD	place: 범주
+서울대병원 강남센터	센터	QUALIFIER	place: 지점 표지
+서울대병원 강남센터	서울대병원	ENTITY	place: 이름
+강남 센터	강남	LOCATION	place: 지역
+강남 방탈출 찾아줘 왜 안나와	안나와	META	command: 불만 발화
+강남 방탈출 찾아줘 왜 안나와	왜	META	command: 의문 부사
+방탈출 찾아줘 아니 강남	아니	META	command: 정정
+주변 강남 방탈출 찾아줘	주변	CONSTRAINT	place: 근접 조건
+아이폰 15 케이스 찾아줘	케이스	HEAD	commerce: 범주
+아이유 노래	아이유	ENTITY	person: 인물
+손흥민 골 하이라이트	손흥민	ENTITY	person: 인물
+애플 매장	애플	ENTITY/apple_inc	commerce: 동음이의어
+배 수리	배	HEAD/ship	web: 동음이의어
+배 1박스	배	HEAD/pear	commerce: 동음이의어
+배	배	none	web: 동음이의어 단독
+기생충 줄거리	기생충	ENTITY/parasite_film	web: 동음이의어
+기생충 박멸	기생충	HEAD/parasite_bio	web: 동음이의어
+애플파이	애플파이	HEAD/apple_pie	web: 복합어
+연세365의원	연세365의원	ENTITY	mixed: 혼합 문자
+123젤라또	123젤라또	ENTITY	mixed: 혼합 문자
+젤라또 2개	2개	CONSTRAINT	mixed: 수량
+B2B마케팅	B2B마케팅	none	mixed: 일반어 가능
+GS25역삼점	역삼	LOCATION	mixed: 지점 재분리
+GS25역삼점	점	QUALIFIER	mixed: 지점 재분리
+오늘 뉴스	오늘	CONSTRAINT	web: 시간
+무선 이어폰	이어폰	HEAD	commerce: 범주
+나이키 운동화	나이키	ENTITY	commerce: 브랜드
+서울 날씨 어때	서울	LOCATION	command: 지역

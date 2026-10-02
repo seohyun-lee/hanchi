@@ -1,0 +1,8 @@
+plugins:
+  - preset:web
+  - preset:commerce
+  - preset:local
+  - ./plugin
+overrides: []
+cases: [cases.tsv, cases.jsonl]
+roles: [roles.tsv, roles.jsonl]
