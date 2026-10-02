@@ -63,6 +63,23 @@ class KiwiBackend:
         self._user_words.add(word)
         return added
 
+    @property
+    def user_word_score(self) -> float:
+        return self._score
+
+    def load_user_dictionary(self, path: str | Path) -> int:
+        """Load a Kiwi user dictionary file (``word \t TAG \t score`` per line)."""
+        count = 0
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                cols = line.rstrip("\n").split("\t")
+                if not cols[0].strip() or cols[0].startswith("#") or len(cols) < 2:
+                    continue
+                score = float(cols[2]) if len(cols) > 2 and cols[2] else None
+                self.add_user_word(cols[0], cols[1], score)
+                count += 1
+        return count
+
     def tokenize(self, text: str) -> list[Morph]:
         kwargs: dict[str, Any] = {}
         if self._typos:

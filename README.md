@@ -45,6 +45,26 @@ ranking.names(), ranking.mode  # (['강남 카페 라떼', '홍대 카페'], 'st
 
 `Span.resolved`는 가장 높은 가설의 확률이 임계값(기본 0.9) 이상일 때만 채워집니다. 그렇지 않으면 `hypotheses`에 남은 모든 해석을 보고 검색 쪽에서 해석별로 시도하면 됩니다.
 
+## 명령줄 (CLI)
+
+```bash
+hanchi analyze -p preset:local "주변 강남 방탈출 찾아줘 왜 안나와"   # 표: span | clause | 품사 | 역할(p) | sense/type | weight | attach | 근거
+hanchi analyze --json "나를 찾아줘"                                   # JSON
+hanchi analyze --context prev.json "강남 방탈출 찾아줘 왜 안나와"      # 세션 문맥 {"prev_query": ..., "prev_result_count": 0}
+hanchi analyze -w 4 --json < queries.txt                               # 한 줄에 쿼리 하나, 결과는 JSON lines
+hanchi rank "강남 카페" -c candidates.txt                              # 후보 재정렬 + 점수 근거 (후보 줄은 이름 또는 JSON)
+hanchi expand "식당"                                                   # 동의어·상하위어 확장
+hanchi eval -c my_search/eval.yaml                                     # 평가
+hanchi repl                                                            # 대화형 (:help)
+hanchi dict export --format kiwi -o out/                               # Kiwi 사용자 사전
+hanchi dict export --format nori -o out/                               # Elasticsearch/OpenSearch nori 사용자 사전
+```
+
+모든 명령은 `--config 설정.yaml`, `-p 플러그인`(여러 번), `--override overrides.tsv`를 받습니다.
+여러 쿼리를 한꺼번에 처리할 때는 파이썬에서 `Analyzer.analyze_batch(texts, workers=4)`를 쓰면 됩니다.
+
+nori 내보내기는 이름(개체·뜻 사전 표기)을 분해형 없이, 여러 명사로 된 범주어(`서비스센터 서비스 센터`)는 분해형과 함께 씁니다. `decompound_mode: mixed`와 함께 쓰는 것을 권장합니다.
+
 ## 핵심 개념: 3층 모델
 
 | 층 | 질문 | 값의 형태 | 담당 |
